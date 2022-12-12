@@ -13,8 +13,14 @@
    [ -e "$texmfhome/tex/$t3" ] && rm -r  $texmfhome/tex/$t3
    [ -L "$texmfhome/tex/$t3" ] && rm     $texmfhome/tex/$t3
    ln -s                      $(pwd)/$t3 $texmfhome/tex/$t3
+   t=$(pwd)/$t3
+   perl -CSD -npe '
+       s/p(LaTeX2e)/$1/ if /NeedsTeXFormat/;
+       s/(zw)/em/g if /zw/;
+       ' $t/ascolorbox.sty > $t/myAscolorbox.sty 
 
+       diff -u  $t/ascolorbox.sty $t/myAscolorbox.sty 
    echo
-   echo kpsewhich -all ascolorbox.sty の結果は以下の通り
-   kpsewhich -all ascolorbox.sty | /usr/bin/perl -pne 's%'$HOME'%~%'
+   echo kpsewhich -all ascolorbox.sty myAscolorbox.sty の結果は以下の通り
+   kpsewhich -all ascolorbox.sty myAscolorbox.sty | /usr/bin/perl -pne 's%'$HOME'%~%'
 }
