@@ -6,20 +6,28 @@
 # ln -s $(pwd)/ceosty-UTF-8\ -2/ceosty/into\ map/ceo   $texmfhome/fonts/map/ceo
 
 {
+    unar=$(which unar)
+    if [ -z "$unar" ] ; then
+        echo このスクリプトは、S_JIS の日本語名のファイル等を含むもの zip ファイルを utf-8 化するために unar を必要としています
+        exit
+    fi
+}
+{
     ARC=zzARCHIVES
     URL=http://hocsom.com/ceosty_settei.zip
 
     [ -d $ARC ] || mkdir -p $ARC
 
     t1=$(basename $URL)
-    [ -f "$ARC/$t1" ] || curl --silent --location --output $ARC/$t1 --remote-time $URL
+    find $ARC -iname $t1 -delete
+    curl --silent --location --output $ARC/$t1 --remote-time $URL
 
     t3=$(zipinfo -1 $ARC/$t1 | awk -F/ '{print $1}'| uniq)
     [ -e "$t3" ] && rm -rf "$t3"
+    [ -L "$t3" ] && rm     "$t3"
     unar -quiet $ARC/$t1
 
     texmfhome=$(kpsewhich --var-value TEXMFHOME)
-
 
     declare -A myarray=(
         ["into latex"]="$texmfhome/tex"
@@ -53,5 +61,8 @@
     echo
 
     echo kpsewhich -all $t4 の結果は以下の通り
-    kpsewhich -all $t4 | /usr/bin/perl -pne 's%'$HOME'%~%'
+    kpsewhich -all $t4 | perl -pne 's%'$HOME'%~%'
+
+    find $ARC '(' -iname $t1 ')' -delete
+    find $ARC -depth -empty -delete
 }

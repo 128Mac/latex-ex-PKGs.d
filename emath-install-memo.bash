@@ -4,19 +4,10 @@
     ARC=zzARCHIVES
     USR="emath:$(date +%Y)"
 
+    URL=http://emath.s40.xrea.com/allinone.htm
     DLURL=http://emath.la.coocan.jp/sty
 
-    t3=emath
-    [ -d $ARC  ] || mkdir -p $ARC
-    [ -d $t3   ] && rm -rf $t3
-
-    mkdir $t3
-
-    #cd $t3
-
     # 丸ごとパック
-    URL=http://emath.s40.xrea.com/allinone.htm
-
     zipfile=$(
         curl --silent --location $URL |
             grep 'emath.s40.xrea.com.*zip' |
@@ -24,15 +15,25 @@
             grep zip
            )
 
-    curl --silent --location -O $DLURL/$zipfile
+    t3=$(basename $zipfile .zip)
 
-    unzip -q -d $t3 -o $zipfile
-    find $t3 -iname '*.zip' -not -iname $zipfile |
+    [ -d $ARC  ] || mkdir -p $ARC
+    [ -d $t3   ] && rm -rf $t3
+
+    mkdir $t3
+
+    #cd $t3
+
+    curl --silent --location  --output $ARC/$zipfile --remote-time $DLURL/$zipfile
+
+    unzip  -q -o -d $ARC $ARC/$zipfile -x readme.txt
+
+    zipinfo -1 $ARC/$zipfile -x readme.txt |
         while read zip ; do
-            unzip -q -d $t3 -o $zip
-            rm $zip
+            unzip -q -o -d $t3 $ARC/$zip
+            rm $ARC/$zip
         done
-    rm $zipfile
+    rm $ARC/$zipfile
 
     # 訂正版
     URLTEISEI=http://emath.s40.xrea.com/teisei.htm
@@ -43,9 +44,9 @@
         grep zip |
         uniq |
         while read zipfile ; do
-            curl --silent --location -O $DLURL/$zipfile
-            unzip -q -d $t3 -o $zipfile
-            rm $zipfile
+            curl --silent --location --output $ARC/$zipfile $DLURL/$zipfile
+            unzip  -q -o -d $t3 $ARC/$zipfile
+            rm $ARC/$zipfile
         done
 
     texmfhome=$(kpsewhich --var-value TEXMFHOME)
@@ -60,5 +61,15 @@
 
     t4=$(find $t3 -iname '*.sty'| xargs -L 1 basename | sort | head)
     echo kpsewhich -all $t4 の結果は以下の通り
-    kpsewhich -all $t4 | /usr/bin/perl -pne 's%'$HOME'%~%'
+    kpsewhich -all $t4 | perl -pne 's%'$HOME'%~%'
+
+    perl5lib=$(
+        find $(pwd)/$3 -iname '*.pl' -exec dirname {} \; |
+            sort -u |
+            perl -pne 's%'$HOME'%~%' |
+            xargs | tr ' ' ':')
+    echo
+    echo "perl 連携情報 PERL5LIB=$perl5lib"
+
+    find $ARC -depth -empty -delete
 }
