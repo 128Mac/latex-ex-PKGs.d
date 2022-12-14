@@ -39,6 +39,7 @@
     URLTEISEI=http://emath.s40.xrea.com/teisei.htm
 
     curl --silent --location $URLTEISEI |
+        iconv -f sjis -t utf8 |
         sed '/<!---/,/--->/d;/----------/,$d' |
         tr '<"/>( )' '\n' |
         grep zip |
