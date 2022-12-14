@@ -29,22 +29,24 @@
 
     texmfhome=$(kpsewhich --var-value TEXMFHOME)
 
-    declare -A myarray=(
-        ["into latex"]="$texmfhome/tex"
-        ["into tfm"]="$texmfhome/fonts/tfm"
-        ["into type1"]="$texmfhome/fonts/type1"
-        ["into map"]="$texmfhome/fonts/map"
-    )
-    for k in "into latex" "into tfm" "into type1" "into map" ; do
-        s=$(find "$(pwd)/$t3" -name "$k")/ceo
-        d=${myarray[$k]}/ceo
-
-        if [ -d "$s" ] ; then
-            [ -e "$d" ] && rm -r "$d"
-            [ -L "$d" ] && rm    "$d"
-            ln -s "$s" "$d"
-        fi
-    done
+    ceo_dir=$( zipinfo -1 $ARC/$t1 | awk -F/ '{print $1}' | sort -u )
+    find "$ceo_dir" -iname ceo |
+        grep /into |
+        while read s ; do
+            d=$(
+                echo "$s" |
+                    sed '
+                    s%/into %%
+                    s%latex%tex%
+                    '
+             )
+            s=$(echo "$s" | sed 's/ /\\&/g')
+            if [  -d "$s" ] ; then
+                [ -e "$d" ] && rm -r "$d"
+                [ -L "$d" ] && rm    "$d"
+                ln -s "$s" "$d"
+            fi
+        done
 
     echo
     echo Download URL: $URL
