@@ -5,8 +5,8 @@
 
     t3=$(basename $URL .git)
 
-    find . -iname "$t3" -delete
-    git clone $URL $t3
+    [ -d "$t3" ] && find "$t3" -delete
+    git clone --quiet $URL $t3
 
     texmfhome=$(kpsewhich --var-value TEXMFHOME)
 
