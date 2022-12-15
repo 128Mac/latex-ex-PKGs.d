@@ -24,6 +24,7 @@
     echo Download URL: $URL
 
     t4=$(find $t3 -iname '*.sty'| xargs -L 1 basename)
+    t4=Schlmath.sty
     echo kpsewhich -all $t4 の結果は以下の通り
     kpsewhich -all $t4 | perl -pne 's%'$HOME'%~%'
 
