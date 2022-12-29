@@ -15,6 +15,8 @@
                 iconv -f sjis -t utf8 |
                 perl -ne '
                     exit if ( /旧訂正版/ );
+                    next unless ( /href.*zip/);
+		    s%</*(font|p)[^<>]*>%%ig;
                     print "$2 $1\n"    if ( /.* href="([^"]+)["]>([^<>]+[.]zip)<.*/   ) ;# 丸ごとパック/訂正
                     print "$2 $1/$2\n" if ( /.* href="([^"]+)[\/]([^"]+[0-9][.]zip)"/ ) ;# perl
                 '
@@ -44,14 +46,23 @@
     teiseiZIP=$(   mySel 'lime.cgi\?teisei' 0 $infoINFO )
     teiseiURL=$(   mySel 'lime.cgi\?teisei' 1 $infoINFO )
 
+    hoteiZIP=$(    mySel 'lime.cgi\?hotei'  0 $infoINFO )
+    hoteiURL=$(    mySel 'lime.cgi\?hotei'  1 $infoINFO )
+
     perlZIP=$(     mySel 'emathpl'          0 $infoINFO )
     perlURL=$(     mySel 'emathpl'          1 $infoINFO )
 
     curl --silent --location --output $ARC/$marugotoZIP $marugotoURL
     curl --silent --location --output $ARC/$teiseiZIP   $teiseiURL
+    [ -n "$hoteiZIP" ] && curl --silent --location --output $ARC/$hoteiZIP    $hoteiURL
     curl --silent --location --output $ARC/$perlZIP     $perlURL
 
-    emath=$(basename $marugotoZIP .zip)-$(basename $teiseiZIP .zip)
+    if [ -n "$hoteiZIP" ] ; then
+        emath=$(basename $marugotoZIP .zip)-$(basename $teiseiZIP .zip)-$(basename $hoteiZIP .zip)
+    else
+        emath=$(basename $marugotoZIP .zip)-$(basename $teiseiZIP .zip)
+    fi
+
     [ -d "$emath" ] && find $emath -delete
     mkdir -p $emath
 
@@ -62,19 +73,26 @@
             unzip -q -d $emath $zip
             rm $zip
         done
+
     git -C $emath init --quiet
     git -C $emath add .
     git -C $emath commit --quiet -am "$(basename $marugotoZIP .zip) from $marugotoURL"
 
+    function gitBranch() {
+        zip=$1
+        url=$2
+        if [ -f "$ARC/$zip" ] ; then
+
+            git -C $emath checkout --quiet -b $(basename $zip .zip)
+            unzip -q -o -d $emath $ARC/$zip && rm $ARC/$zip
+            git -C $emath add .
+            git -C $emath commit --quiet -am "$(basename $zip .zip) from $url"
+        fi
+    }
     # 訂正版で置き換え
     # ブランチを切っておく
-    git -C $emath checkout --quiet -b $(basename $teiseiZIP .zip)
-    unzip -q -o -d $emath $ARC/$teiseiZIP && rm $ARC/$teiseiZIP
-    git -C $emath add $(
-        git -C $emath status |
-            awk -v RS= '/Untracked/ { gsub (/.*\)/, ""); print}'
-        )
-    git -C $emath commit --quiet -am "$(basename $teiseiZIP .zip) from $teiseiURL"
+    gitBranch "$teiseiZIP" "$teiseiURL"
+    gitBranch "$hoteiZIP"  "$hoteiURL"
 
     perl=$(basename $perlURL .zip)
     [ -d "$perl" ] && find $perl -delete
